@@ -32,7 +32,7 @@ def generate_launch_description():
     use_namespace_arg = DeclareLaunchArgument('use_namespace', default_value='true')
     use_sim_time_arg = DeclareLaunchArgument('use_sim_time', default_value='true')
     use_navigation_xy_goal_tolerance_arg = DeclareLaunchArgument('navigation_xy_goal_tolerance', default_value='1.0')
-    use_navigation_yaw_goal_tolerance_arg = DeclareLaunchArgument('navigation_yaw_goal_tolerance', default_value='0.15')
+    use_navigation_yaw_goal_tolerance_arg = DeclareLaunchArgument('navigation_yaw_goal_tolerance', default_value='0.25')
 
 
     robot_name = LaunchConfiguration('robot_name')
@@ -107,19 +107,19 @@ def generate_launch_description():
                 parameters=[{'use_sim_time': use_sim_time}],
             ),
 
-            # Node(
-            #     package='robot_state_publisher',
-            #     executable='robot_state_publisher',
-            #     name='robot_state_publisher',
-            #     parameters=[robot_description, {'use_sim_time': use_sim_time}],
-            # ),
+            Node(
+                package='robot_state_publisher',
+                executable='robot_state_publisher',
+                name='robot_state_publisher',
+                parameters=[robot_description, {'use_sim_time': use_sim_time}],
+            ),
 
-            # Node(
-            #     package="rviz2",
-            #     executable="rviz2",
-            #     name="rviz",
-            #     arguments=["--display-config", zx200_standby_rviz_file_path],
-            #     parameters=[{'use_sim_time': use_sim_time}],
-            # ),
+            Node(
+                package="rviz2",
+                executable="rviz2",
+                name="rviz",
+                arguments=["--display-config", zx200_standby_rviz_file_path],
+                parameters=[{'use_sim_time': use_sim_time}],
+            ),
         ]),
     ])

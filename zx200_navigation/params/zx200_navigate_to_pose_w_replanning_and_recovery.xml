@@ -1,36 +1,107 @@
-
-<!--
-  This Behavior Tree replans the global path periodically at 1 Hz and it also has
-  recovery actions specific to planning / control as well as general system issues.
-  This will be continuous if a kinematically valid planner is selected.
--->
+<?xml version="1.0"?>
 <root main_tree_to_execute="MainTree">
-  <BehaviorTree ID="MainTree">
-    <RecoveryNode number_of_retries="6" name="NavigateRecovery">
-      <PipelineSequence name="NavigateWithReplanning">
-        <RateController hz="1.0">
-          <RecoveryNode number_of_retries="1" name="ComputePathToPose">
-            <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
-            <ClearEntireCostmap name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
-          </RecoveryNode>
-        </RateController>
-        <RecoveryNode number_of_retries="1" name="FollowPath">
-          <FollowPath path="{path}" controller_id="FollowPath"/>
-          <ClearEntireCostmap name="ClearLocalCostmap-Context" service_name="local_costmap/clear_entirely_local_costmap"/>
-        </RecoveryNode>
-      </PipelineSequence>
-      <ReactiveFallback name="RecoveryFallback">
-        <GoalUpdated/>
-        <RoundRobin name="RecoveryActions">
-          <Sequence name="ClearingActions">
-            <ClearEntireCostmap name="ClearLocalCostmap-Subtree" service_name="local_costmap/clear_entirely_local_costmap"/>
-            <ClearEntireCostmap name="ClearGlobalCostmap-Subtree" service_name="global_costmap/clear_entirely_global_costmap"/>
-          </Sequence>
-          <Spin spin_dist="1.57"/>
-          <Wait wait_duration="5"/>
-          <BackUp backup_dist="0.30" backup_speed="0.05"/>
-        </RoundRobin>
-      </ReactiveFallback>
-    </RecoveryNode>
-  </BehaviorTree>
+    <!-- ////////// -->
+    <BehaviorTree ID="MainTree">
+        <Sequence>
+            <SetBlackboard output_key="controller_id" value="RPP"/>
+            <SetBlackboard output_key="FINISH_FLG" value="No"/>
+            <Control ID="RecoveryNode" name="NavigateRecovery" number_of_retries="6">
+                <Control ID="PipelineSequence" name="NavigateWithReplanning">
+                    <Decorator ID="RateController" hz="1.0">
+                        <Control ID="RecoveryNode" name="ComputePathToPose" number_of_retries="1">
+                            <Action ID="ComputePathToPose" goal="{goal}" path="{path}" planner_id="GridBased"/>
+                            <Action ID="ClearEntireCostmap" name="ClearGlobalCostmap-Context" service_name="global_costmap/clear_entirely_global_costmap"/>
+                        </Control>
+                    </Decorator>
+                    <Control ID="RecoveryNode" name="FollowPath" number_of_retries="1">
+                        <Parallel failure_threshold="1" success_threshold="-1">
+                            <ForceSuccess>
+                                <KeepRunningUntilFailure>
+                                    <IfThenElse>
+                                        <BlackboardCheckString return_on_mismatch="FAILURE" value_A="{FINISH_FLG}" value_B="No">
+                                            <AlwaysSuccess/>
+                                        </BlackboardCheckString>
+                                        <ReactiveFallback>
+                                            <Decorator ID="WithinGoalRadius" frame="/base_link" goal="{goal}" radius="5.0" use_xy_only="true">
+                                                <Sequence>
+                                                    <Action ID="LoggerNode" text="Selected RSC controller"/>
+                                                    <SetBlackboard output_key="controller_id" value="RSC"/>
+                                                </Sequence>
+                                            </Decorator>
+                                            <Sequence>
+                                                <Action ID="LoggerNode" text="Selected RPP controller"/>
+                                                <SetBlackboard output_key="controller_id" value="RPP"/>
+                                            </Sequence>
+                                        </ReactiveFallback>
+                                        <AlwaysFailure/>
+                                    </IfThenElse>
+                                </KeepRunningUntilFailure>
+                            </ForceSuccess>
+                            <Sequence>
+                                <Action ID="FollowPath" controller_id="{controller_id}" path="{path}"/>
+                                <SetBlackboard output_key="FINISH_FLG" value="Yes"/>
+                            </Sequence>
+                        </Parallel>
+                        <Action ID="ClearEntireCostmap" name="ClearLocalCostmap-Context" service_name="local_costmap/clear_entirely_local_costmap"/>
+                    </Control>
+                </Control>
+                <ReactiveFallback name="RecoveryFallback">
+                    <Condition ID="GoalUpdated"/>
+                    <Control ID="RoundRobin" name="RecoveryActions">
+                        <Sequence name="ClearingActions">
+                            <Action ID="ClearEntireCostmap" name="ClearGlobalCostmap-Subtree" service_name="global_costmap/clear_entirely_global_costmap"/>
+                            <Action ID="ClearEntireCostmap" name="ClearLocalCostmap-Subtree" service_name="local_costmap/clear_entirely_local_costmap"/>
+                        </Sequence>
+                        <Action ID="Spin" spin_dist="1.57"/>
+                        <Action ID="Wait" wait_duration="5"/>
+                        <Action ID="BackUp" backup_dist="0.30" backup_speed="0.05"/>
+                    </Control>
+                </ReactiveFallback>
+            </Control>
+        </Sequence>
+    </BehaviorTree>
+    <!-- ////////// -->
+    <TreeNodesModel>
+        <Action ID="BackUp">
+            <inout_port name="backup_dist"/>
+            <inout_port name="backup_speed"/>
+        </Action>
+        <Action ID="ClearEntireCostmap">
+            <inout_port name="service_name"/>
+        </Action>
+        <Action ID="ComputePathToPose">
+            <inout_port name="goal"/>
+            <inout_port name="path"/>
+            <inout_port name="planner_id"/>
+        </Action>
+        <Action ID="FollowPath">
+            <inout_port name="controller_id"/>
+            <inout_port name="path"/>
+        </Action>
+        <Condition ID="GoalUpdated"/>
+        <Action ID="LoggerNode">
+            <inout_port name="text"/>
+        </Action>
+        <Control ID="PipelineSequence"/>
+        <Decorator ID="RateController">
+            <inout_port name="hz"/>
+        </Decorator>
+        <Control ID="RecoveryNode">
+            <inout_port name="number_of_retries"/>
+        </Control>
+        <Control ID="RoundRobin"/>
+        <Action ID="Spin">
+            <inout_port name="spin_dist"/>
+        </Action>
+        <Action ID="Wait">
+            <inout_port name="wait_duration"/>
+        </Action>
+        <Decorator ID="WithinGoalRadius">
+            <inout_port name="frame"/>
+            <inout_port name="goal"/>
+            <inout_port name="radius"/>
+            <inout_port name="use_xy_only"/>
+        </Decorator>
+    </TreeNodesModel>
+    <!-- ////////// -->
 </root>

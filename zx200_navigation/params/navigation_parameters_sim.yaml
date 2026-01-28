@@ -134,19 +134,11 @@ bt_navigator_navigate_to_pose_rclcpp_node:
 
 controller_server:
   ros__parameters:
-<<<<<<< HEAD
-    use_sim_time: True
-    controller_frequency: 10.0
-    min_x_velocity_threshold: 0.001
-    min_y_velocity_threshold: 0.5
-    min_theta_velocity_threshold: 0.001
-=======
     use_sim_time: false
     controller_frequency: 5.0
     min_x_velocity_threshold: 0.002
     # min_y_velocity_threshold: 0.5
     min_theta_velocity_threshold: 0.01
->>>>>>> b287e44 (Update: パラメータをチューニング)
     failure_tolerance: 0.3
     progress_checker_plugin: "progress_checker"
     goal_checker_plugins: ["general_goal_checker"] # "precise_goal_checker"

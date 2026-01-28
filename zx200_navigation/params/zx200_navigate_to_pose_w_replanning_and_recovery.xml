@@ -5,6 +5,7 @@
         <Sequence>
             <SetBlackboard output_key="controller_id" value="RPP"/>
             <SetBlackboard output_key="FINISH_FLG" value="No"/>
+            <SetBlackboard output_key="LOCK" value="No"/>
             <Control ID="RecoveryNode" name="NavigateRecovery" number_of_retries="6">
                 <Control ID="PipelineSequence" name="NavigateWithReplanning">
                     <Decorator ID="RateController" hz="1.0">
@@ -22,16 +23,26 @@
                                             <AlwaysSuccess/>
                                         </BlackboardCheckString>
                                         <ReactiveFallback>
-                                            <Decorator ID="WithinGoalRadius" frame="/base_link" goal="{goal}" radius="5.0" use_xy_only="true">
+                                            <Decorator ID="WithinGoalRadius" frame="base_link" goal="{goal}" radius="0.5" use_xy_only="true">
+                                                <Sequence>
+                                                    <Action ID="LoggerNode" text="AAAAAAA"/>
+                                                    <SetBlackboard output_key="controller_id" value="RSC"/>
+                                                    <SetBlackboard output_key="LOCK" value="Yes"/>
+                                                </Sequence>
+                                            </Decorator>
+                                            <IfThenElse>
+                                                <BlackboardCheckString return_on_mismatch="FAILURE" value_A="{LOCK}" value_B="Yes">
+                                                    <AlwaysSuccess/>
+                                                </BlackboardCheckString>
                                                 <Sequence>
                                                     <Action ID="LoggerNode" text="Selected RSC controller"/>
                                                     <SetBlackboard output_key="controller_id" value="RSC"/>
                                                 </Sequence>
-                                            </Decorator>
-                                            <Sequence>
-                                                <Action ID="LoggerNode" text="Selected RPP controller"/>
-                                                <SetBlackboard output_key="controller_id" value="RPP"/>
-                                            </Sequence>
+                                                <Sequence>
+                                                    <Action ID="LoggerNode" text="Selected RPP controller"/>
+                                                    <SetBlackboard output_key="controller_id" value="RPP"/>
+                                                </Sequence>
+                                            </IfThenElse>
                                         </ReactiveFallback>
                                         <AlwaysFailure/>
                                     </IfThenElse>

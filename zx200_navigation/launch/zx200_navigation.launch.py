@@ -60,6 +60,7 @@ def generate_launch_description():
             # # behavior_server
             # 'behavior_server.ros__parameters.robot_base_frame': [robot_name, '/base_link'],
             # 'behavior_server.ros__parameters.local_frame': [robot_name, '/odom'],
+            'bt_navigator.ros__parameters.default_nav_to_pose_bt_xml': [zx200_navigation_dir, '/params/zx200_navigate_to_pose_w_replanning_and_recovery.xml'],
 
             # controller_server
             # 'controller_server.ros__parameters.odom_topic': [robot_name, '/odom_pose'],
